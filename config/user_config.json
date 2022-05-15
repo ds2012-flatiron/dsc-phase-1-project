@@ -1,4 +1,10 @@
 {
+    "title-rating-min-value" : 1.0,
+    "title-rating-max-value" : 10.0,
+    "rating-votes-min" : 10,
+    "runtime-minutes-min" : 25,
+    "runtime-minutes-max" : 360,
+    "covid-start-year" : 2020,
     "folders" : {
 	    "config"         :"./config",
 	    "data-csv"       :"./data",
@@ -27,7 +33,10 @@
             "title-base":"imdb.title.basics.csv",
             "title-crew":"imdb.title.crew.csv",
             "title-prin":"imdb.title.principals.csv",
-            "title-rate":"imdb.title.ratings.csv"
+            "title-rate":"imdb.title.ratings.csv",
+            "clean-title-base" : "clean.imdb.title.basics.csv",
+            "clean-title-rate" : "clean.imdb.title.ratings.csv"
+
         }
     },
     "files-rt" : {
@@ -43,7 +52,8 @@
     },
     "files-bom": {
         "zip" : "bom.movie_gross.csv.gz",
-        "csv" : "bom.movie_gross.csv"
+        "csv" : "bom.movie_gross.csv",
+        "clean-csv": "clean.bom.movie_gross.csv"
     },
     "files-tmdb" : {
         "web" : "https://www.themoviedb.org/",
