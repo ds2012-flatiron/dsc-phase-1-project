@@ -32,12 +32,12 @@ The project data files are provided on [Phase 1 Project GitHub page](https://git
     - **imdb.title.principals.csv:** contains principal cast/crew members, indicating job category, and, in case of actors, characters played;
     - **imdb.title.akas.csv:** contains title names for all countries where the title was released;
 * [Rotten Tomatoes](https://www.rottentomatoes.com/)
-    -**rt.movie_info.tsv:** contains title synopsis, MPA rating (i.e. PG-13, etc), genre, director, writer, release date, box office, run time, studio;
-    -**rt.reviews.tsv:** contains ratings from professional movie critics;
+    - **rt.movie_info.tsv:** contains title synopsis, MPA rating (i.e. PG-13, etc), genre, director, writer, release date, box office, run time, studio;
+    - **rt.reviews.tsv:** contains ratings from professional movie critics;
 * [TheMovieDB](https://www.themoviedb.org/)
-    -**tmdb.movies.csv:** contains title rating data; 
+    - **tmdb.movies.csv:** contains title rating data; 
 * [The Numbers](https://www.the-numbers.com/)
-    -**tn.movie_budgets.csv:** contains title level revenue information: budget, domestic gross, and worldwide gross.
+    - **tn.movie_budgets.csv:** contains title level revenue information: budget, domestic gross, and worldwide gross.
     
 ### Data Assessment
 
