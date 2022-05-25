@@ -28,9 +28,9 @@ The project data files are provided on [Phase 1 Project GitHub page](https://git
 * [IMDB](https://www.imdb.com/)
     - **imdb.title.basics.csv:** title name, release year, total runtime, and genre (often multiple genres);
     - **imdb.title.ratings.csv:** title average rating, number of votes received by the title;
-    - **imdb.title.crew.csv:** lists director and writer(s) by referencing their unique ids from the file `imdb.name.basecs.csv`;
+    - **imdb.title.crew.csv:** lists the film director and writer(s) by referencing their unique ids from the file `imdb.name.basics.csv`;
     - **imdb.title.principals.csv:** contains principal cast/crew members, indicating job category, and, in case of actors, characters played;
-    - **imdb.title.akas.csv:** contains title names for all countries where the title was released;
+    - **imdb.title.akas.csv:** contains title names in the native language of all countries where the title was released;
 * [Rotten Tomatoes](https://www.rottentomatoes.com/)
     - **rt.movie_info.tsv:** contains title synopsis, MPA rating (i.e. PG-13, etc), genre, director, writer, release date, box office, run time, studio;
     - **rt.reviews.tsv:** contains ratings from professional movie critics;
@@ -43,13 +43,13 @@ The project data files are provided on [Phase 1 Project GitHub page](https://git
 
 IMDB data are the most consistent data package which provides title and name unique identifiers for joining data in separate files. The data in the file `imdb.title.akas.csv` may be viewed as the least relevant to the business problem.
 
-While certain personalities such famous actors, directors, script writers, may indicate a potentially profitable project or a franchise, investing in a film on the basis of a certain personality may expose one to idiosyncratic risk. Therefore, IMDB data on crew and principals contained in files `imdb.title.crew.csv` and `imdb.title.principlas.csv` are not considered.
+While certain personalities such famous actors, directors, script writers, may indicate a potentially profitable project or a franchise, investing in a film on the basis of a certain personality may expose one to idiosyncratic risk. Therefore, IMDB data on crew and principals contained in files `imdb.title.crew.csv` and `imdb.title.principles.csv` are not considered.
 
 Rotten Tomatoes data are not considered due to missing title information such as the title itself.
 
 The Movie DB data can be viewed as an auxhiliary source of the title rating offered by viewers.
 
-Budget and revenue data from website [The Numbers](https://www.the-numbers.com) is a useful supplemental dataset for title level revenue data. The recommended for the project file `bom.movie_gross.csv` from BOM has about 3.4K lines, whereas the file `tn.movie_budgets.csv` has 5.8K lines. It should be mentioned that further analysis would be required as domestic or foreign (or both) revenue information can be missing.
+Budget and revenue data from website [The Numbers](https://www.the-numbers.com) is a useful supplemental dataset for title level revenue data. The recommended for the project file `bom.movie_gross.csv` from BOM has about 3.4K lines of data, whereas the file `tn.movie_budgets.csv` has 5.8K lines of data. It should be mentioned that further analysis would be required as domestic or foreign (or both) revenue information can be missing.
 
 ### Data Preparation
 
@@ -57,10 +57,19 @@ This section discusses the steps to clean and normalize data in files `imdb.titl
 
 * `imdb.title.basics.csv`: the file is prepared by calling function `prep_imdb_title_basics(config)` which (i) removes rows with null values in columns for run time and genre, (ii) removes all titles released in 2020, 2021, and 2022 since economics of these releases are affected by COVID related disruptions, (iii) removes all the titles with run times below 25 minutes and above 6 hours (360) minutes.
 * `imdb.title.rating.csv`: Function `prep_imdb_title_ratings` (i) removes rows with null values, (ii) rows with off the scale rating value (1-10), (iii) and rows with ratings from a small number of votes (below 100).
-* `bom.movie_gross.csv`: Similar to other functions, `prep_bom_movie_gross(config)` (i) removes rows with null values, (ii) parses through each value of domestict and foreign revenue and converts it to a number.
+* `bom.movie_gross.csv`: Similar to other functions, `prep_bom_movie_gross(config)` (i) removes rows with null values, (ii) parses each value of domestic and foreign revenue and converts it to a number.
 * merging data: funciton `merge_data` left joins of title basics and title ratings followed by a left join of bom movie gross data.
 
 ## Methodology
+
+It is a basic tenet of this analysis, and one's personal experience, that certain genres of film are more popular with the viewing audience. The public preference may change over time, and historical experience supports this observation. The focus of this analysis is the 10-year period from 2010 to 2019.
+
+In these data, a film title has four measurable attributes which are genre, rating, run time, and gross revenue either foreign or domestic or both. Therefore, the recommendations to a developing film studio will come in a format of 
+1. A list of genres which made the most money over the 10 year period.
+2. A list of genres which made the most money per title and the standard deviation of this revenue as a measure of risk.
+3. A list of genres with the highest rating per title and the standard deviation of this rating as a measure of uncertainty about this rating for a randomly selected title;
+4. A correlation analysis between title rating and title gross revenue for genres with highest rating per title. If the correlation is high, then it provides an indication of high revenue for genres with high per title rating.
+5. A correlation analysis between title run time and revenue. This analysis will test the hypothesis that very short productions or very long productions may need to be avoided.
 
 The data on movie titles, their release year, run time, genre, and rating are sourced from [IMDB](https://www.imdb.com/), and revenue data by title are sourced from [Box Office Mojo](https://www.boxofficemojo.com/). These data are compressed in 'gzip' format files which contain comma delimited data files. These files are provided on [Phase 1 Project GitHub page](https://github.com/learn-co-curriculum/dsc-phase-1-project).
 
