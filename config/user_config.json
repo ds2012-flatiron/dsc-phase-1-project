@@ -1,10 +1,12 @@
 {
+    "title-release-year-min"  : 2010, 
+    "title-release-year-max"  : 2019,
     "title-rating-min-value" : 1.0,
     "title-rating-max-value" : 10.0,
-    "rating-votes-min" : 10,
-    "runtime-minutes-min" : 25,
-    "runtime-minutes-max" : 360,
-    "covid-start-year" : 2020,
+    "rating-votes-min"       : 100,
+    "runtime-minutes-min"    : 25,
+    "runtime-minutes-max"    : 360,
+    "covid-start-year"       : 2020,
     "folders" : {
 	    "config"         :"./config",
 	    "data-csv"       :"./data",
@@ -63,6 +65,7 @@
     "files-tn" : {
         "web" : "https://www.the-numbers.com/",
         "zip" : "tn.movie_budgets.csv.gz",
-        "csv" : "tn.movie_budgets.csv"
+        "csv" : "tn.movie_budgets.csv",
+        "clean-csv" : "clean.tn.movie_budgets.csv"
     }
 }
