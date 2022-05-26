@@ -31,12 +31,12 @@ The project data files are provided on [Phase 1 Project GitHub page](https://git
     - **imdb.title.crew.csv:** lists the film director and writer(s) by referencing their unique ids from the file `imdb.name.basics.csv`;
     - **imdb.title.principals.csv:** contains principal cast/crew members, indicating job category, and, in case of actors, characters played;
     - **imdb.title.akas.csv:** contains title names in the native language of all countries where the title was released;
-* [Rotten Tomatoes](https://www.rottentomatoes.com/)
+* [Rotten Tomatoes (RT)](https://www.rottentomatoes.com/)
     - **rt.movie_info.tsv:** contains title synopsis, MPA rating (i.e. PG-13, etc), genre, director, writer, release date, box office, run time, studio;
     - **rt.reviews.tsv:** contains ratings from professional movie critics;
-* [TheMovieDB](https://www.themoviedb.org/)
+* [TheMovieDB(TMDB)](https://www.themoviedb.org/)
     - **tmdb.movies.csv:** contains title rating data; 
-* [The Numbers](https://www.the-numbers.com/)
+* [The Numbers(TN)](https://www.the-numbers.com/)
     - **tn.movie_budgets.csv:** contains title level revenue information: budget, domestic gross, and worldwide gross.
     
 ### Data Assessment
@@ -63,6 +63,8 @@ This section discusses the steps to clean and normalize data in files `imdb.titl
 ## Methodology
 
 It is a basic tenet of this analysis, and one's personal experience, that certain genres of film are more popular with the viewing audience. The public preference may change over time, and historical experience supports this observation. The focus of this analysis is the 10-year period from 2010 to 2019.
+
+Profit and loss (title revenue less title budget) is not discussed in this analysis. There are several reasons for it. First, Budget data are incomplete as title budget data are only available from TN, and TN data end in 2016. Second, a significant portion of a title budget is often for promotion which increases the market size and revenue of the film but may not influence ratings. The influence of promotional budget on ratings and revenue may be a topic of further research which requires additional data on production costs only. Thirdly, large promotional budgets are typical of large productions in action, adventure, and sci-fi genres which are known and designed for large box office revenue. Here, it is important to find out what other genres may also generate revenue, perhaps, without additional exposure of high promotional costs and their uncertain recovery. 
 
 In these data, a film title has four measurable attributes which are genre, rating, run time, and gross revenue either foreign or domestic or both. Therefore, the recommendations to a developing film studio will come in a format of 
 1. A list of genres which made the most money over the 10 year period.
