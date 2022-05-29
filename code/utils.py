@@ -17,9 +17,13 @@ def convert_user_config_to_json(strUserConfigFile):
     except OSError as err:
         print("OS error: {0}".format(err))
     fileUserConfig.close()
+    # Write json config to the same folder as `user_config.json` location
+    tplFolderFileSplit = os.path.split(strUserConfigFile)
+    strJsonConfigFile  = os.path.join(tplFolderFileSplit[0],'config.json')
+    
     # Writing data as a json dump
     try:
-        fileJSON = open("./config/config.json", mode = 'w', encoding = 'utf-8')
+        fileJSON = open(strJsonConfigFile, mode = 'w', encoding = 'utf-8')
         json.dump(config, fileJSON)
     except OSError as err:
         print("OS error: {0}".format(err))
@@ -41,6 +45,32 @@ def load_json_config():
         print("OS error: {0}".format(err))
 
     return config
+
+def load_json_config_from_file(configFile):
+    """
+    utility function 'load_json_config' loads file './config/config.json'
+    which has been converted from 'user_config.json' file (editable format)
+    via json.load() and json.dump()
+    
+    Argument:
+        `configFile` points to './config/config.json' from the location relative to
+        the folder from where the function call is made.
+    Example:
+        if the function call is from folder './code/', then `configFile` must have value
+        `./../config/config.json`
+    """
+    # File exists
+    if not os.path.exists(configFile):
+        raise FileNotFoundError
+    # loading config from 
+    try: 
+        fileConfig = open(configFile, mode = 'r', encoding = 'utf-8')
+        config = json.load(fileConfig)
+    except OSError as err:
+        print("OS error: {0}".format(err))
+
+    return config
+
 
 def check_file_exists(strFolder, strFile):
     dctReturnValue = {'file': '', 'exists': False}
