@@ -58,7 +58,8 @@ This section discusses the steps to clean and normalize data in files `imdb.titl
 * `imdb.title.basics.csv`: the file is prepared by calling function `prep_imdb_title_basics(config)` which (i) removes rows with null values in columns for run time and genre, (ii) removes all titles released in 2020, 2021, and 2022 since economics of these releases are affected by COVID related disruptions, (iii) removes all the titles with run times below 25 minutes and above 6 hours (360) minutes.
 * `imdb.title.rating.csv`: Function `prep_imdb_title_ratings` (i) removes rows with null values, (ii) rows with off the scale rating value (1-10), (iii) and rows with ratings from a small number of votes (below 100).
 * `bom.movie_gross.csv`: Similar to other functions, `prep_bom_movie_gross(config)` (i) removes rows with null values, (ii) parses each value of domestic and foreign revenue and converts it to a number.
-* merging data: funciton `merge_data` left joins of title basics and title ratings followed by a left join of bom movie gross data.
+* `tn.movie_budgets.csv`: TN source for revenue data by title. Just like with BOM data, `prep_tn_movie_budgets(config)` performs similar data cleaning and standardization operations.
+* merging clean data: functon `merge_clean_data` performs a left join of IMDB title data to IMDB rating data on IMDB title unique key. The budget data are joined on the title string itself which capitalized left joins of title basics and title ratings followed by a left join of merged TN and BOM movie gross data.
 
 ## Methodology
 

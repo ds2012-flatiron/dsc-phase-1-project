@@ -1,4 +1,6 @@
 {
+    "titles-per-genre-min" : 10,
+    "rating-numvotes-pertitle-min" : 100,
     "title-release-year-min"  : 2010, 
     "title-release-year-max"  : 2019,
     "title-rating-min-value" : 1.0,
@@ -70,5 +72,9 @@
     },
     "files-merge" : {
         "clean-csv" : "clean.merge.title.rating.revenue.csv"
+    },
+    "charts" : {
+        "bar-number-upperbound" : 20,
+        "min-titles-per-genre" : 10
     }
 }
