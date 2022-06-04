@@ -12,8 +12,10 @@ Columns:
     'foreign_gross' - revenue in the entire foreign gross revenue;
 """
 
+from cmath import isnan
 import os
 import csv
+from tracemalloc import stop
 from turtle import color, right
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -146,8 +148,7 @@ def bar_chart_top_genres_by_weightedavg_title_rating(config, maxgenres = 15):
     dfGroupByGenre['rating_wavgstdev'] = dfGroupByGenre['rating_wavgstdev_term1'].subtract(dfGroupByGenre['rating_wavgstdev_term2'])
     dfGroupByGenre['rating_wavgstdev'] = dfGroupByGenre['rating_wavgstdev'].apply(np.sqrt)
  
-    ### Sort dfGroupByGenre by 'wavgrating'; rename to df for ease of reference
-    dfGroupByGenre = dfGroupByGenre.sort_values('wavgrating',ascending=False)
+    ### rename to df for ease of reference
     df = dfGroupByGenre.copy()
     del dfGroupByGenre
  
@@ -179,3 +180,136 @@ def bar_chart_top_genres_by_weightedavg_title_rating(config, maxgenres = 15):
     plt.show()
 
     return None
+
+def barchart_scatterplot_title_rating_and_revenue(config):
+    """
+    """
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','title','genres','rating','numvotes','domestic_gross','foreign_gross']]
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    mskValidGross = (df['worldwide_gross'].isna()==False)
+    mskValidRating = (df['rating'].isna()==False)
+    mskValidNumvotes = ( (df['numvotes'].isna() == False) & (df['numvotes'] >= config['rating-numvotes-pertitle-min']) )
+    ### INCLUDED for Testing Purposes and Sensitivity Analysis
+    ### mskValidNumvotes = ( (df['numvotes'].isna() == False) & (df['numvotes'] >= 0) )
+
+    mskValidRevenue = ( (df['worldwide_gross'] > 0) & (df['worldwide_gross'] < 100e9))
+    mskValidRows = (mskValidGross & mskValidRating & mskValidNumvotes & mskValidRevenue)
+    df = df.loc[mskValidRows]
+    dfTitleLevel = df
+    
+    ### GENERATE PLOT: Title Level Data
+    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(10,8))
+
+    ### Axis 0: BAR CHART: Title Avg Revenue across Rating Intervals
+    lstIntervalSet = [[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9]]
+    dctAvgRatingByInterval = compute_revenue_mean_stdev_for_rating_interval(dfTitleLevel,lstIntervalSet,\
+        'rating','worldwide_gross',1e6)
+
+    lstBarXTicks = list(map(lambda lstInt: sum(lstInt)/len(lstInt), lstIntervalSet))
+    zipTuple = zip(dctAvgRatingByInterval['avg'],dctAvgRatingByInterval['std'])
+    lstBarLabels = [f'{m:0.1f}±{e:0.1f}' for (m,e) in zipTuple]
+    p0=ax[0].bar(lstBarXTicks, dctAvgRatingByInterval['avg'], yerr=dctAvgRatingByInterval['std'])
+    ax[0].bar_label(p0,labels=lstBarLabels,label_type='edge',color='m')
+    ax[0].set_title(f'2010-2019: Title Average Revenue By Rating Interval')
+    ax[0].set_ylim(top=np.max(dctAvgRatingByInterval['avg'])+75)
+    ax[0].set_ylabel('Revenue ($mm)')
+
+    ### Axis 1: Scatter Plot: Title Level: x-axis - title rating,y-axis - title worldwide gross
+    p1=ax[1].scatter(dfTitleLevel['rating'], dfTitleLevel['worldwide_gross'].div(1e6),s=10)
+    ax[1].set_xlabel('Title Rating')
+    ax[1].set_ylabel('Revenue ($mm)')
+    ax[1].set_title(f'2010-2019: Title Rating v Title Revenue')
+    ax[1].set_xlim(left=lstIntervalSet[0][0],right=lstIntervalSet[-1][1])
+
+    plt.show()
+    ### END OF PLOT
+
+    return None
+
+def barchart_scatterplot_genre_rating_and_revenue(config):
+    """
+    """
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','title','genres','rating','numvotes','domestic_gross','foreign_gross']]
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    mskValidGross = (df['worldwide_gross'].isna()==False)
+    mskValidRating = (df['rating'].isna()==False)
+    mskValidNumvotes = ( (df['numvotes'].isna() == False) & (df['numvotes'] >= config['rating-numvotes-pertitle-min']) )
+    ### INCLUDED for Testing Purposes and Sensitivity Analysis
+    ### mskValidNumvotes = ( (df['numvotes'].isna() == False) & (df['numvotes'] >= 0) )
+
+    mskValidRevenue = (df['worldwide_gross'] > 0)
+    mskValidRows = (mskValidGross & mskValidRating & mskValidNumvotes & mskValidRevenue)
+    df = df.loc[mskValidRows]
+    
+    ### Compute weighted average of title ratings per genre
+    df['rating_times_numvotes'] = df['rating'].mul(df['numvotes'])
+    dfGroupByGenre = df.groupby('genres')[['rating_times_numvotes','numvotes','worldwide_gross','domestic_gross','foreign_gross']] \
+                       .agg(np.sum).reset_index()
+    dfGroupByGenreTitleCounts = df.groupby('genres')['tconst'].count().reset_index()
+    dfGroupByGenreTitleCounts.rename(columns={'tconst':'genre_numtitles'}, inplace=True)
+
+    dfGroupByGenreTitleRating = df.groupby('genres')['rating'].agg(['mean']).reset_index()
+    dfGroupByGenreTitleRating.rename(columns={'mean':'rating_mean'}, inplace=True)
+
+    dfGroupByGenre = pd.merge(dfGroupByGenre,dfGroupByGenreTitleCounts,how='inner',on='genres')
+    dfGroupByGenre = pd.merge(dfGroupByGenre,dfGroupByGenreTitleRating,how='inner',on='genres')
+    dfGroupByGenre = dfGroupByGenre.loc[dfGroupByGenre['genre_numtitles']>=config['titles-per-genre-min']]
+    ### Delete df to release memory
+    del df
+    
+    ### Compute weigthed (by numvotes) average rating
+    dfGroupByGenre['wavgrating'] = dfGroupByGenre['rating_times_numvotes'].div(dfGroupByGenre['numvotes'])
+    dfGenreLevel = dfGroupByGenre
+    del dfGroupByGenre
+
+    ### GENERATE PLOT: Genre Level Data
+    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(10,8))
+
+    ### Axis 0: BAR CHART: Genre Avg Revenue across Weighted Avg Ratings 
+    ###                    X-Axis: Rating Intervals Defined by Genre Weighted Avg Rating
+    ###                    Y-Axis: Average Genre Revenue
+    lstIntervalSet = [[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9]]
+    dctAvgRatingByInterval = compute_revenue_mean_stdev_for_rating_interval(dfGenreLevel,lstIntervalSet, \
+        'wavgrating','worldwide_gross',1e9)
+    dctAvgRatingByInterval['avg'] = [n if not np.isnan(n) else 0 for n in dctAvgRatingByInterval['avg']]
+    dctAvgRatingByInterval['std'] = [n if not np.isnan(n) else 0 for n in dctAvgRatingByInterval['std']]
+
+    lstBarXTicks = list(map(lambda lstInt: sum(lstInt)/len(lstInt), lstIntervalSet))
+    zipTuple = zip(dctAvgRatingByInterval['avg'],dctAvgRatingByInterval['std'])
+    lstBarLabels = [f'{m:0.2f}±{e:0.2f}' if not (m,e)==(0,0) else f'{str(0)}' for (m,e) in zipTuple]
+    p0=ax[0].bar(lstBarXTicks, dctAvgRatingByInterval['avg'], yerr=dctAvgRatingByInterval['std'])
+    ax[0].bar_label(p0,labels=lstBarLabels,label_type='edge',color='m')
+    ax[0].set_title(f'2010-2019: Genre Weighted Average Revenue by Rating Interval')
+    ax[0].set_ylim(top=np.max(dctAvgRatingByInterval['avg'])+1.5)
+    ax[0].set_ylabel('Revenue ($bb)')
+
+    ### Axis 1: SCATTER PLOT: Genre
+    p1=ax[1].scatter(dfGenreLevel['wavgrating'], dfGenreLevel['worldwide_gross'].div(1e9))
+    ax[1].set_xlabel('Weighted Avg Genre Rating')
+    ax[1].set_ylabel('Revenue ($bb)')
+    ax[1].set_title(f'2010-2019: Genre Rating v Genre Revenue')
+    ax[1].set_xlim(left=lstIntervalSet[0][0],right=lstIntervalSet[-1][1])
+
+    plt.show()
+
+    return None
+
+def compute_revenue_mean_stdev_for_rating_interval(df, lstIntervalSet, strRatingColName, strRevenueColName, fltOrderOfMagnitude):
+    """
+    Compute average revenue for a rating interval of type (a,b]. All data cleaning has taken place, no NaNs
+    """
+    lstAvg = list()
+    lstStd = list()
+    for lstInterval in lstIntervalSet:
+        mskRatingInterval = ((df[strRatingColName] > lstInterval[0]) & (df[strRatingColName] <= lstInterval[1]))
+        seriesRevenue = df.loc[mskRatingInterval,strRevenueColName]
+        fltRevenueMean = seriesRevenue.mean()
+        fltRevenueStd  = seriesRevenue.std() / np.sqrt(seriesRevenue.count())
+        lstAvg.append(fltRevenueMean/fltOrderOfMagnitude)
+        lstStd.append(fltRevenueStd/fltOrderOfMagnitude)
+    
+    return {'avg':lstAvg,'std':lstStd}
