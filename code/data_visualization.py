@@ -313,3 +313,30 @@ def compute_revenue_mean_stdev_for_rating_interval(df, lstIntervalSet, strRating
         lstStd.append(fltRevenueStd/fltOrderOfMagnitude)
     
     return {'avg':lstAvg,'std':lstStd}
+
+def scatterplot_title_runtime_and_revenue(config):
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','title','domestic_gross','foreign_gross','runtime_minutes']]
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    mskValidRevenue = ((df['worldwide_gross'].isna()==False) & (df['worldwide_gross']>0))
+    mskValidRuntime = (df['runtime_minutes'].isna()==False)
+    mskValidRows = (mskValidRevenue & mskValidRuntime)
+    df = df.loc[mskValidRows]
+
+    ### GENERATE PLOT: Genre Level Data
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize=(7,5))
+
+    ### Axis 0: BAR CHART: Genre Avg Revenue across Weighted Avg Ratings 
+    ###                    X-Axis: Rating Intervals Defined by Genre Weighted Avg Rating
+    ###                    Y-Axis: Average Genre Revenue
+
+    ### Axis 1: SCATTER PLOT: Runtime_minutes and revenue
+    p0=ax.scatter(df['runtime_minutes'], df['worldwide_gross'].div(1e9),s=7)
+    ax.set_xlabel('runtime in minutes')
+    ax.set_ylabel('revenue ($bb)')
+    ax.set_title(f'2010-2019: Title Runtime in Minutes v Title Revenue')
+
+    plt.show()
+
+    return None
