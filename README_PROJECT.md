@@ -76,6 +76,23 @@ In these data, a film title has four measurable attributes which are genre, rati
 
 The data on movie titles, their release year, run time, genre, and rating are sourced from [IMDB](https://www.imdb.com/), and revenue data by title are sourced from [Box Office Mojo](https://www.boxofficemojo.com/). These data are compressed in 'gzip' format files which contain comma delimited data files. These files are provided on [Phase 1 Project GitHub page](https://github.com/learn-co-curriculum/dsc-phase-1-project).
 
+## Analysis and Results
+
+### Genres with Most Revenue in 2010-2019
+
+
+
+
+## Recommendations
+
+1. A new streaming service should produce films in genres `Action,Adventure,Sci-Fi` and `Adventure, Animation, Comedy`. Historical performance indicates that they are the best combination of revenue level and revenue risk across all genres.
+
+2. A streaming service is more suited for genres such as biography and documentary films which are not considered to have a blockbuster appeal. Based on rating data, a new streaming service should consider producing documentaries with biographical, historical, military related plot threads. Well-liked titles will drive subscription volume which is the revenue backbone for a streaming service.
+
+In addition, the data provide evidence that, on average, the higher rated is the title, the higher is its earnings potential. The data also show that below the rating of 4, the likelihood of the title to make money is limited. Therefore, test audience previews are also recommended.
+
+3. `Keep it short!` The data show a sharp decline in revenue for titles with runtimes above 2.5 hours. Titles with runtimes below 60 minutes are less likely to make money as well. The data show that the titles with runtimes of approximately 2 hours are the most consistent at making money. Yet, variability is significant, and only the lower bound of 60 minutes and upper bound of 2.5 hours is best adhered to.
+
 All data file are compressed and contain comma delimited data sets for (1) movie title basic characteristics, (2) movie title ratings, and (3) movie title revenue. 
 
 In the folder `zippedData` are movie datasets from:
