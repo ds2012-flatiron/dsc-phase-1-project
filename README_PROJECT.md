@@ -1,6 +1,6 @@
-![tag-microsoft-logo](./images/Microsoft-Logo.png)
+![tag-microsoft-logo](./images/Microsoft-Logo.png =10x20)
 
-# Motion Pictures Profitability Analysis (or How to Succeed in Movie Business by Really Trying)
+# Motion Pictures Profitability Analysis
 
 **Author**: [Daniel Shevelev](mailto:ds2012flatiron@gmail.com)
 
