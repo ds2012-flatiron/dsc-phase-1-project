@@ -1,4 +1,4 @@
-![tag-microsoft-logo](./images/Microsoft-Logo.png =10x20)
+![tag-microsoft-logo](./images/Microsoft-Logo.png | width=250, height=100)
 
 # Motion Pictures Profitability Analysis
 

@@ -291,7 +291,7 @@ def barchart_scatterplot_genre_rating_and_revenue(config):
     p1=ax[1].scatter(dfGenreLevel['wavgrating'], dfGenreLevel['worldwide_gross'].div(1e9))
     ax[1].set_xlabel('Weighted Avg Genre Rating')
     ax[1].set_ylabel('Revenue ($bb)')
-    ax[1].set_title(f'2010-2019: Genre Rating v Genre Revenue')
+    ax[1].set_title(f'2010-2019: Genre Rating v Genre Worldwide Revenue')
     ax[1].set_xlim(left=lstIntervalSet[0][0],right=lstIntervalSet[-1][1])
 
     plt.show()
@@ -335,8 +335,129 @@ def scatterplot_title_runtime_and_revenue(config):
     p0=ax.scatter(df['runtime_minutes'], df['worldwide_gross'].div(1e9),s=7)
     ax.set_xlabel('runtime in minutes')
     ax.set_ylabel('revenue ($bb)')
-    ax.set_title(f'2010-2019: Title Runtime in Minutes v Title Revenue')
+    ax.set_title(f'2010-2019: Title Runtime v Title Worlwide Revenue')
 
     plt.show()
 
     return None
+
+def scatterplot_title_runtime_and_revenue_bygenre(config, genreNameList, scatterPlotTitle=''):
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','title','genres','domestic_gross','foreign_gross','runtime_minutes']]
+    df = df.loc[(df['genres'].isna()==False)]
+    mskGenreNameList = (df['genres']==genreNameList[0])
+    for genreName in genreNameList:
+        mskGenreNameList = (mskGenreNameList | (df['genres']==genreName))
+    df = df.loc[(mskGenreNameList)]
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    mskValidRevenue = ((df['worldwide_gross'].isna()==False) & (df['worldwide_gross']>0))
+    mskValidRuntime = (df['runtime_minutes'].isna()==False)
+    mskValidRows = (mskValidRevenue & mskValidRuntime)
+    df = df.loc[mskValidRows]
+
+    ### GENERATE PLOT: Genre Level Data
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize=(8,4))
+
+    ### Axis 0: BAR CHART: Genre Avg Revenue across Weighted Avg Ratings 
+    ###                    X-Axis: Rating Intervals Defined by Genre Weighted Avg Rating
+    ###                    Y-Axis: Average Genre Revenue
+
+    ### Axis 1: SCATTER PLOT: Runtime_minutes and revenue
+    p0=ax.scatter(df['runtime_minutes'], df['worldwide_gross'].div(1e9),s=7)
+    ax.set_xlabel('runtime in minutes')
+    ax.set_ylabel('revenue ($bb)')
+    if len(genreNameList) == 1:
+        ax.set_title(f'{genreNameList[0]} in 2010-2019: Title Runtime v Title Revenue')
+    else:
+        if len(scatterPlotTitle) < 1:
+            ax.set_title(f'Top {len(genreNameList)} Genres by Rating in 2010-19: Title Runtime v Revenue')
+        else:
+            ax.set_title(scatterPlotTitle)
+
+    plt.show()
+
+    return None
+
+def list_topN_genres_by_rating(config, maxGenres=20):
+    lstGenres = list()
+
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[(np.isnan(df['rating'])==False), ['tconst','title','genres','rating','numvotes']]
+    df = df.loc[df['numvotes']>=config['rating-numvotes-pertitle-min']].copy()
+
+    ### Compute weighted average of title ratings per genre
+    df['rating_times_numvotes'] = df['rating'].mul(df['numvotes'])
+    df['ratingsqrd_times_numvotes'] = (df['rating'].mul(df['rating'])).mul(df['numvotes'])
+    dfGroupByGenre = df.groupby('genres')[['ratingsqrd_times_numvotes','rating_times_numvotes','numvotes']] \
+                       .agg(np.sum).reset_index()
+    dfGroupByGenreTitleCounts = df.groupby('genres')['tconst'].count().reset_index()
+    dfGroupByGenreTitleCounts.rename(columns={'tconst':'genre_numtitles'}, inplace=True)
+
+    dfGroupByGenreTitleRating = df.groupby('genres')['rating'].agg(['mean','std']).reset_index()
+    dfGroupByGenreTitleRating.rename(columns={'mean':'rating_mean','std':'rating_std'}, inplace=True)
+
+    dfGroupByGenre = pd.merge(dfGroupByGenre,dfGroupByGenreTitleCounts,on='genres')
+    dfGroupByGenre = pd.merge(dfGroupByGenre,dfGroupByGenreTitleRating,on='genres')
+    dfGroupByGenre = dfGroupByGenre.loc[dfGroupByGenre['genre_numtitles']>=config['titles-per-genre-min']]
+    ### Delete df to release memory
+    del df
+    
+    ### Compute weigthed (by numvotes) average rating
+    dfGroupByGenre['wavgrating']     = dfGroupByGenre['rating_times_numvotes'].div(dfGroupByGenre['numvotes'])
+    ### Compute first and second terms of weighted average standard deviation
+    dfGroupByGenre['rating_wavgstdev_term1'] = dfGroupByGenre['ratingsqrd_times_numvotes'].div(dfGroupByGenre['numvotes'])
+    dfGroupByGenre['rating_wavgstdev_term2'] = dfGroupByGenre['wavgrating'].mul(dfGroupByGenre['wavgrating'])
+    dfGroupByGenre = dfGroupByGenre.rename({'rating_times_numvotes':'genresum_rating_times_numvotes',
+                                            'ratingsqrd_times_numvotes':'genresum_ratingsqrd_times_numvotes',
+                                            'numvotes':'genresum_numvotes'}, axis=1)
+    dfGroupByGenre['rating_wavgstdev'] = dfGroupByGenre['rating_wavgstdev_term1'].subtract(dfGroupByGenre['rating_wavgstdev_term2'])
+    dfGroupByGenre['rating_wavgstdev'] = dfGroupByGenre['rating_wavgstdev'].apply(np.sqrt)
+ 
+    ### rename to df for ease of reference
+    df = dfGroupByGenre.copy()
+    del dfGroupByGenre
+    df0 = df.sort_values('wavgrating',ascending=False).iloc[range(maxGenres)]
+    df1 = df.sort_values('rating_mean',ascending=False).iloc[range(maxGenres)]
+
+    list0 = df0['genres'].to_list()
+    list1 = df1['genres'].to_list()
+    list0.extend(list1)
+    lstGenres = set(list0)
+    lstGenres = list(lstGenres)
+
+    return lstGenres
+
+def list_topN_genres_byrevenue(config, maxGenres=10):
+    """
+    """
+    lstGenres = list()
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','genres','domestic_gross','foreign_gross']]
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    mskValidGross = ( (df['worldwide_gross'].isna()==False) & (df['genres'].isna()==False) )
+    df = df.loc[mskValidGross]
+
+    dfGrpByGenreRevenueSum = df.groupby('genres')['worldwide_gross'].agg(np.sum).reset_index()
+    dfGrpByGenreRevenueSum.rename(columns={'worldwide_gross':'genretot_worldwide_gross'},inplace=True)
+
+    dfGrpByGenreTitleCount = df.groupby('genres')['tconst'].count().reset_index()
+    dfGrpByGenreTitleCount.rename(columns={'tconst':'genretot_title_count'}, inplace=True)
+
+    df = pd.merge(dfGrpByGenreRevenueSum,dfGrpByGenreTitleCount,on='genres',how='inner')
+    df['genreavg_worldwide_gross_pertitle'] = df['genretot_worldwide_gross'].div(df['genretot_title_count'])
+    df.sort_values('genretot_worldwide_gross', ascending=False, inplace=True)
+    lstGenresByTotGross = df['genres'].iloc[range(maxGenres)].to_list()
+    df.sort_values('genreavg_worldwide_gross_pertitle',inplace=True)
+    lstGenresByAvgGross = df['genres'].iloc[range(maxGenres)].to_list()
+
+    lstGenres = lstGenresByTotGross
+    lstGenres.extend(lstGenresByAvgGross)
+    lstGenres = set(lstGenres)
+
+    return list(lstGenres)
+
+
+    return lstGenres
