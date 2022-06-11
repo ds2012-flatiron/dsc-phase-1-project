@@ -12,9 +12,11 @@ Columns:
     'foreign_gross' - revenue in the entire foreign gross revenue;
 """
 
+from cProfile import label
 from cmath import isnan
 import os
 import csv
+from sys import ps2
 from tracemalloc import stop
 from turtle import color, right
 import matplotlib.pyplot as plt
@@ -30,28 +32,41 @@ def bar_chart_top_genres_by_revenue(config, maxgenres = 10):
 
     ### Load merged data
     df = dataprep.load_merged_clean_data(config)
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    dfW = df.loc[(np.isnan(df['worldwide_gross'])==False),['tconst','title','year','genres','worldwide_gross']]
     dfD = df.loc[(np.isnan(df['domestic_gross'])==False), ['tconst','title','year','genres','domestic_gross']]
     dfF = df.loc[(np.isnan(df['foreign_gross'])==False),  ['tconst','title','year','genres','foreign_gross']]
 
     ### Get sums by genres
+    srsW=dfW.groupby('genres')['worldwide_gross'].sum().sort_values(ascending=False).iloc[range(maxgenres)]
     srsD=dfD.groupby('genres')['domestic_gross'].sum().sort_values(ascending=False).iloc[range(maxgenres)]
     srsF=dfF.groupby('genres')['foreign_gross'].sum().sort_values(ascending=False).iloc[range(maxgenres)]
-    fltRightXLimit = max(srsD.div(1e9).max(),srsF.div(1e9).max()) + 1
+    fltRightXLimit = max( [srsW.div(1e9).max(),srsD.div(1e9).max(),srsF.div(1e9).max()] ) + 1.5
 
     ### Generage plot
-    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(10,8))
-    p0=ax[0].barh(srsD.index, srsD.div(1e9).values)
+    fig, ax = plt.subplots(nrows=3,ncols=1,figsize=(10,8))
+
+    p0=ax[0].barh(srsW.index, srsW.div(1e9).values, label='Worldwide Gross ($b)', color='red')
     ax[0].invert_yaxis()
     ax[0].bar_label(p0,label_type='edge',fmt='%.1f')
-    ax[0].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Domestic Gross ($ Billion)')
+    ax[0].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Gross Revenue')
     ax[0].set_xlim(right=fltRightXLimit)
+    ax[0].legend()
 
-    p1=ax[1].barh(srsF.index, srsF.div(1e9).values)
+
+    p1=ax[1].barh(srsD.index, srsD.div(1e9).values, label='Domestic Gross ($b)',color='orange')
     ax[1].invert_yaxis()
     ax[1].bar_label(p1,label_type='edge',fmt='%.1f')
-    ax[1].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Foreign Gross ($ Billion)')
     ax[1].set_xlim(right=fltRightXLimit)
+    ax[1].legend()
 
+    p2=ax[2].barh(srsF.index, srsF.div(1e9).values, label='Foreign Gross ($b)',color='green')
+    ax[2].invert_yaxis()
+    ax[2].bar_label(p2,label_type='edge',fmt='%.1f')
+    ax[2].set_xlim(right=fltRightXLimit)
+    ax[2].legend()
+
+    fig.tight_layout()
     plt.show()
 
     return None
@@ -64,10 +79,15 @@ def bar_chart_top_genres_by_avgrevenue_pertitle(config, maxgenres = 10):
 
     ### Load merged data
     df = dataprep.load_merged_clean_data(config)
+    df['worldwide_gross'] = df['domestic_gross'].add(df['foreign_gross'], fill_value=0)
+    dfW = df.loc[(np.isnan(df['worldwide_gross'])==False),['tconst','title','year','genres','worldwide_gross']]
     dfD = df.loc[(np.isnan(df['domestic_gross'])==False), ['tconst','title','year','genres','domestic_gross']]
     dfF = df.loc[(np.isnan(df['foreign_gross'])==False),  ['tconst','title','year','genres','foreign_gross']]
 
     ### Get sums by genres
+    dfW= dfW.groupby('genres')['worldwide_gross'].agg(['mean','std','count']).reset_index()
+    dfW= dfW.loc[dfW['count'] >= config['charts']['min-titles-per-genre']] \
+            .sort_values('mean',ascending=False).iloc[range(maxgenres)]
     dfD= dfD.groupby('genres')['domestic_gross'].agg(['mean','std','count']).reset_index()
     dfD= dfD.loc[dfD['count'] >= config['charts']['min-titles-per-genre']] \
             .sort_values('mean',ascending=False).iloc[range(maxgenres)] 
@@ -76,8 +96,23 @@ def bar_chart_top_genres_by_avgrevenue_pertitle(config, maxgenres = 10):
             .sort_values('mean',ascending=False).iloc[range(maxgenres)]
  
     ### Generage plot
-    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(10,8))
-    fltRightXLimit = max(dfD['mean'].div(1e6).max(),dfF['mean'].div(1e6).max()) + 150
+    fig, ax = plt.subplots(nrows=3,ncols=1,figsize=(10,8))
+    fltRightXLimit = max([  dfD['mean'].div(1e6).max(), \
+                            dfF['mean'].div(1e6).max(), \
+                            dfW['mean'].div(1e6).max()]) + 220
+
+    ### Row 0: worldwide gross
+    df = dfW.copy()
+    errGrossRevenue = df['std'].div(np.sqrt(df['count'])).div(1e6)
+    zipTriple = zip(df['mean'].div(1e6).to_list(),errGrossRevenue.to_list(),df['count'])
+    lstBarLabels = [f'{m:.0f}±{e:.0f}|title cnt: {n}' for (m,e,n) in zipTriple]
+
+    p0=ax[0].barh(df['genres'], df['mean'].div(1e6).values, xerr=errGrossRevenue, label='Worldwide Average ($m)', color='red')
+    ax[0].invert_yaxis()
+    ax[0].bar_label(p0,labels=lstBarLabels,label_type='edge',fmt='%.0f',color='black')
+    ax[0].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Average Gross Revenue per Title')
+    ax[0].set_xlim(right=fltRightXLimit)
+    ax[0].legend()
 
     ### Row 1: domestic gross
     df = dfD.copy()
@@ -85,11 +120,11 @@ def bar_chart_top_genres_by_avgrevenue_pertitle(config, maxgenres = 10):
     zipTriple = zip(df['mean'].div(1e6).to_list(),errGrossRevenue.to_list(),df['count'])
     lstBarLabels = [f'{m:.0f}±{e:.0f}|title cnt: {n}' for (m,e,n) in zipTriple]
 
-    p0=ax[0].barh(df['genres'], df['mean'].div(1e6).values, xerr=errGrossRevenue)
-    ax[0].invert_yaxis()
-    ax[0].bar_label(p0,labels=lstBarLabels,label_type='edge',fmt='%.0f',color='m')
-    ax[0].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Domestic Avg Gross per Title ($ Million)')
-    ax[0].set_xlim(right=fltRightXLimit)
+    p1=ax[1].barh(df['genres'], df['mean'].div(1e6).values, xerr=errGrossRevenue, label='Domestic Average ($m)', color='orange')
+    ax[1].invert_yaxis()
+    ax[1].bar_label(p1,labels=lstBarLabels,label_type='edge',fmt='%.0f',color='black')
+    ax[1].set_xlim(right=fltRightXLimit)
+    ax[1].legend()
 
     ### Row 2: foreign gross
     df = dfF.copy()
@@ -97,12 +132,14 @@ def bar_chart_top_genres_by_avgrevenue_pertitle(config, maxgenres = 10):
     zipTriple = zip(df['mean'].div(1e6).to_list(),errGrossRevenue.to_list(),df['count'])
     lstBarLabels = [f'{m:.0f}±{e:.0f}|title cnt: {n}' for (m,e,n) in zipTriple]
 
-    p1=ax[1].barh(df['genres'], df['mean'].div(1e6).values, xerr=errGrossRevenue)
-    ax[1].invert_yaxis()
-    ax[1].bar_label(p1,labels=lstBarLabels,label_type='edge',fmt='%.0f',color='m')
-    ax[1].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Foreign Avg Gross per Title ($ Million)')
-    ax[1].set_xlim(right=fltRightXLimit)
+    p2=ax[2].barh(df['genres'], df['mean'].div(1e6).values, xerr=errGrossRevenue,label='Foreign Average ($m)', color='green')
+    ax[2].invert_yaxis()
+    ax[2].bar_label(p2,labels=lstBarLabels,label_type='edge',fmt='%.0f',color='black')
+    ax[2].set_xlabel('million ($)')
+    ax[2].set_xlim(right=fltRightXLimit)
+    ax[2].legend()
 
+    fig.tight_layout()
     plt.show()
 
     return None
@@ -153,8 +190,8 @@ def bar_chart_top_genres_by_weightedavg_title_rating(config, maxgenres = 15):
     del dfGroupByGenre
  
     ### Generage plot
-    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(12,10))
-    fltRightXLimit = max(df['wavgrating'].to_list()) + 3
+    fig, ax = plt.subplots(nrows=2,ncols=1,figsize=(10,8))
+    fltRightXLimit = max(df['wavgrating'].to_list()) + 3.5
 
     ### Axis 0: Plot rating weighted by numvotes
     df0 = df.sort_values('wavgrating',ascending=False).iloc[range(maxgenres)]
@@ -176,7 +213,9 @@ def bar_chart_top_genres_by_weightedavg_title_rating(config, maxgenres = 15):
     ax[1].bar_label(p1,labels=lstBarLabels,label_type='edge',color='m')
     ax[1].set_title(f'2010-2019: Top {str(maxgenres)} Genres by Avg Title Rating')
     ax[1].set_xlim(right=fltRightXLimit)
+    ax[1].set_xlabel('rating (1-10)')
 
+    plt.tight_layout()
     plt.show()
 
     return None
@@ -325,7 +364,7 @@ def scatterplot_title_runtime_and_revenue(config):
     df = df.loc[mskValidRows]
 
     ### GENERATE PLOT: Genre Level Data
-    fig, ax = plt.subplots(nrows=1,ncols=1,figsize=(7,5))
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize=(6,4))
 
     ### Axis 0: BAR CHART: Genre Avg Revenue across Weighted Avg Ratings 
     ###                    X-Axis: Rating Intervals Defined by Genre Weighted Avg Rating
@@ -337,9 +376,39 @@ def scatterplot_title_runtime_and_revenue(config):
     ax.set_ylabel('revenue ($bb)')
     ax.set_title(f'2010-2019: Title Runtime v Title Worlwide Revenue')
 
+    plt.tight_layout()
     plt.show()
 
     return None
+
+def scatterplot_title_runtime_and_rating(config):
+    ### Load merged data
+    df = dataprep.load_merged_clean_data(config)
+    df = df.loc[ :, ['tconst','title','rating','numvotes','runtime_minutes']]
+    mskValidRating = ((df['rating'].isna()==False) & (df['numvotes'].isna()==False) & \
+                      (df['numvotes']>=config['rating-numvotes-pertitle-min']))
+    mskValidRuntime = (df['runtime_minutes'].isna()==False)
+    mskValidRows = (mskValidRating & mskValidRuntime)
+    df = df.loc[mskValidRows]
+
+    ### GENERATE PLOT: Genre Level Data
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize=(6,4))
+
+    ### Axis 0: BAR CHART: Genre Avg Revenue across Weighted Avg Ratings 
+    ###                    X-Axis: Rating Intervals Defined by Genre Weighted Avg Rating
+    ###                    Y-Axis: Average Genre Revenue
+
+    ### Axis 1: SCATTER PLOT: Runtime_minutes and revenue
+    p0=ax.scatter(df['runtime_minutes'], df['rating'],s=7)
+    ax.set_xlabel('runtime in minutes')
+    ax.set_ylabel('rating (1-10)')
+    ax.set_title(f'2010-2019: Title Runtime v Title Rating')
+
+    plt.tight_layout()
+    plt.show()
+
+    return None
+
 
 def scatterplot_title_runtime_and_revenue_bygenre(config, genreNameList, scatterPlotTitle=''):
     ### Load merged data
