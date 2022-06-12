@@ -15,9 +15,7 @@ To avoid paying licensing fees, Microsoft wants to produce its own content in ho
 This analysis' goal is to understand the film attributes which correlated with high title gross revenue in the past. Having understood the viewing public's preferences, it is possible to advise and steer the movie studio executives to produce the content which has performed well at the box office in the past. A concurrent objective is to produce content which can drive the subscriber base.
 
 ## Project Data
-The data for this project come from a number of credible sources with almost exhaustive coverage of content produced in the industry. The data in this project are structured in the sense that each dataset or file represents a set of characteristics for a single film title or a title-related piece of information such as a name (i.e. actor, director, writer, etc), a rating, a film synopsis, etc.
-
-The project data files are provided on [Phase 1 Project GitHub page](https://github.com/learn-co-curriculum/dsc-phase-1-project). The files are compressed using `gz` format.  Python `gzip` and `shutil` libraries are used to decompress the files into their underlying text formats.
+In this project, we focus on film title attributes contained in four distinct datasets which are described in the list below.
 
  Below is a short description of each data file from each data source.
 * [Box Office Mojo (BOM)](https://www.boxofficemojo.com/)
@@ -25,27 +23,8 @@ The project data files are provided on [Phase 1 Project GitHub page](https://git
 * [IMDB](https://www.imdb.com/)
     - **imdb.title.basics.csv:** title name, release year, total runtime, and genre (often multiple genres);
     - **imdb.title.ratings.csv:** title average rating, number of votes received by the title;
-    - **imdb.title.crew.csv:** lists the film director and writer(s) by referencing their unique ids from the file `imdb.name.basics.csv`;
-    - **imdb.title.principals.csv:** contains principal cast/crew members, indicating job category, and, in case of actors, characters played;
-    - **imdb.title.akas.csv:** contains title names in the native language of all countries where the title was released;
-* [Rotten Tomatoes (RT)](https://www.rottentomatoes.com/)
-    - **rt.movie_info.tsv:** contains title synopsis, MPA rating (i.e. PG-13, etc), genre, director, writer, release date, box office, run time, studio;
-    - **rt.reviews.tsv:** contains ratings from professional movie critics;
-* [TheMovieDB (TMDB)](https://www.themoviedb.org/)
-    - **tmdb.movies.csv:** contains title rating data; 
 * [The Numbers (TN)](https://www.the-numbers.com/)
     - **tn.movie_budgets.csv:** contains title level revenue information: budget, domestic gross, and worldwide gross.
-    
-### Data Assessment
-IMDB provides the most comprehensive title profile dataset which includes title and name unique identifiers for joining data in separate files. The data in the file `imdb.title.akas.csv` may be viewed as the least relevant to the business problem.
-
-While certain personalities such as prominent and well-known actors, directors, script writers, etc. may indicate a potentially profitable project or a franchise, investing in a film on the basis of a personal market appeal or, the so-called, "star power" may expose one to idiosyncratic risk. Therefore, IMDB data on crew and principals contained in files `imdb.title.crew.csv` and `imdb.title.principles.csv` are not considered.
-
-Rotten Tomatoes data are not considered due to missing title information such as the title itself.
-
-The Movie DB data can be viewed as an auxhiliary source of the title rating offered by viewers.
-
-Budget and revenue data from website [The Numbers](https://www.the-numbers.com) is a useful supplemental dataset for title level revenue data. The recommended for the project file `bom.movie_gross.csv` from BOM has about 3.4K lines of data, whereas the file `tn.movie_budgets.csv` has 5.8K lines of data. It should be mentioned that further analysis would be required as domestic or foreign (or both) revenue information can be missing.
 
 ### Data Preparation
 The raw data is prepared for analysis in a sequnce of distinct steps:
@@ -54,41 +33,13 @@ The raw data is prepared for analysis in a sequnce of distinct steps:
 3. Data Cleaning;
 4. Data Merging.
 
-#### Data Parameterization
-In this step, we define parameters which are kept constant througout the project. These parameters include file names, folder names, data inclusion/exclusion criteria constants such as COVID-19 inception year, valid rating boundaries, minimum number of titles per genre, and minimum number of votes per title rating, etc.
+`Data Parametrization` step creates a user interface for defining project data constants governing overall project functions and data inclusion/exclusion criteria. This interface is located in file `config/user_config.json`. 
 
-These parameters are incapsulated in file `code/user_config.json`. Specific functions are developed in `code/utils.py` to manipulate and load data in this file.
+In `Data Decompression` step, we convert compressed `gz`-type files to their uncompressed versions of type `csv`.
 
-#### Data Decompression
-First, files are decompressed by using functionality contained in the library `code/utils.py`. Function `unzip_gz_file()` performs decompression using four arguments passed to this function (please consult `code/utils.py`). 
+`Data Cleaning` step performs all standardization of data by filtering unusable data rows.
 
-Compressed data files are located in folder `/zippedData`, and the project uses four files determined in the data assessment step. The files decompressed for further analysis are listed below:
-* `imdb.title.basics.csv.gz`
-* `imdb.title.rating.csv.gz`
-* `bom.movie_gross.csv.gz`
-* `tn.movie_budgets.csv.gz`
-
-Decompressed data files are available from folder `/data`.
-* `imdb.title.basics.csv`
-* `imdb.title.rating.csv`
-* `bom.movie_gross.csv`
-* `tn.movie_budgets.csv`
-
-#### Data Cleaning
-This section discusses the steps to clean and normalize data in files `imdb.title.basics.csv`, `imdb.title.rating.csv`, `bom.movie_gross.csv`, and `tn.movie_budgets.csv.gz`. The code used in this data preparation step is located in library `code/data_preparation.py`. Data preparation is driven by the umbrella function `prepare_clean_data(config)` which calls file specific data prepartion functions.
-
-* `imdb.title.basics.csv -> clean.imdb.title.basics.csv`: the file is prepared by calling function `prep_imdb_title_basics(config)` which (i) removes rows with null values in columns for runtime and genre, (ii) removes all titles released in 2020, 2021, and 2022 since economics of these releases are affected by COVID related disruptions, (iii) removes all the titles with run times below 25 minutes and above 6 hours (360) minutes.
-* `imdb.title.rating.csv -> clean.imdb.title.rating.csv`: Function `prep_imdb_title_ratings` (i) removes rows with null values, (ii) rows with off the scale rating value (1-10), (iii) and rows with ratings from a small number of votes (below 100).
-* `bom.movie_gross.csv -> clean.bom.movie_gross.csv`: Similar to other functions, `prep_bom_movie_gross(config)` (i) removes rows with null values, (ii) parses each value of domestic and foreign revenue and converts it to a number.
-* `tn.movie_budgets.csv -> clean.tn.movie_budgets.csv`: TN source for revenue data by title. Just like with BOM data, `prep_tn_movie_budgets(config)` performs similar data cleaning and standardization operations.
-
-#### Data Merging
-All clean data from IMDB, BOM, and TN are merged into one dataset in two steps.
-1. First, BOM and TN data are merged together: the merge key is the capitalized title name.
-2. Second, title and rating data from IMDB are merged on key 'tconst'.
-3. IMDB title profile data and the combined BOM/TN revenue dataset are merged on key 'title'.
-
-Functon `merge_clean_data(config)` located in the module `code/data_preparation.py` executes the steps described above.
+`Data Merging` step combines all datasets into a single file for further analysis.
 
 ## Methodology
 It is well known from history that film genres and visual styles change with times, and there are periods when some are more popular than others. Viewers' preferences also change over time. The focus of this analysis is the 10-year period from 2010 to 2019.
